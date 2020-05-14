@@ -11,6 +11,11 @@ from googletrans.compat import PY3
 from googletrans.compat import unicode
 from googletrans.utils import rshift
 
+def _add_surrogate(text):
+  return "".join(
+      ''.join(chr(y) for y in struct.unpack('<HH', x.encode('utf-16le')))
+        if (0x10000 <= ord(x) <= 0x10FFFF) else x for x in text
+    )
 
 class TokenAcquirer(object):
     """Google Translate API token generator
@@ -143,6 +148,7 @@ class TokenAcquirer(object):
     def acquire(self, text):
         a = []
         # Convert text to ints
+        text = _add_surrogate(text)
         for i in text:
             val = ord(i)
             if val < 0x10000:
@@ -182,7 +188,7 @@ class TokenAcquirer(object):
                     else:
                         e.append(l >> 12 | 224)
                     e.append(l >> 6 & 63 | 128)
-                e.append(l & 63 | 128)   
+                    e.append(l & 63 | 128)   
             g += 1
         a = b
         for i, value in enumerate(e):
